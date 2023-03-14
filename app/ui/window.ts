@@ -1,29 +1,29 @@
-import {app, BrowserWindow, shell, Menu, BrowserWindowConstructorOptions, Event} from 'electron';
-import {isAbsolute, normalize, sep} from 'path';
-import {URL, fileURLToPath} from 'url';
-import {v4 as uuidv4} from 'uuid';
+import { app, BrowserWindow, shell, Menu, BrowserWindowConstructorOptions, Event } from 'electron';
+import { isAbsolute, normalize, sep } from 'path';
+import { URL, fileURLToPath } from 'url';
+import { v4 as uuidv4 } from 'uuid';
 import isDev from 'electron-is-dev';
 import updater from '../updater';
 import toElectronBackgroundColor from '../utils/to-electron-background-color';
-import {icon, homeDirectory} from '../config/paths';
+import { icon, homeDirectory } from '../config/paths';
 import createRPC from '../rpc';
 import notify from '../notify';
 import fetchNotifications from '../notifications';
 import Session from '../session';
 import contextMenuTemplate from './contextmenu';
-import {execCommand} from '../commands';
-import {setRendererType, unsetRendererType} from '../utils/renderer-utils';
-import {decorateSessionOptions, decorateSessionClass} from '../plugins';
-import {enable as remoteEnable} from '@electron/remote/main';
-import {configOptions} from '../../lib/config';
-import {getWorkingDirectoryFromPID} from 'native-process-working-directory';
+import { execCommand } from '../commands';
+import { setRendererType, unsetRendererType } from '../utils/renderer-utils';
+import { decorateSessionOptions, decorateSessionClass } from '../plugins';
+import { enable as remoteEnable } from '@electron/remote/main';
+import { configOptions } from '../../lib/config';
+import { getWorkingDirectoryFromPID } from 'native-process-working-directory';
 
 export function newWindow(
   options_: BrowserWindowConstructorOptions,
   cfg: configOptions,
   fn?: (win: BrowserWindow) => void
 ): BrowserWindow {
-  const classOpts = Object.assign({uid: uuidv4()});
+  const classOpts = Object.assign({ uid: uuidv4() });
   app.plugins.decorateWindowClass(classOpts);
 
   const winOpts: BrowserWindowConstructorOptions = {
@@ -151,17 +151,17 @@ export function newWindow(
         shellArgs: cfg.shellArgs && Array.from(cfg.shellArgs)
       },
       extraOptionsFiltered,
-      {uid}
+      { uid }
     );
     const options = decorateSessionOptions(defaultOptions);
     const DecoratedSession = decorateSessionClass(Session);
     const session = new DecoratedSession(options);
     sessions.set(uid, session);
-    return {session, options};
+    return { session, options };
   }
 
   rpc.on('new', (extraOptions) => {
-    const {session, options} = createSession(extraOptions);
+    const { session, options } = createSession(extraOptions);
 
     sessions.set(options.uid, session);
     rpc.emit('session add', {
@@ -179,13 +179,13 @@ export function newWindow(
     });
 
     session.on('exit', () => {
-      rpc.emit('session exit', {uid: options.uid});
+      rpc.emit('session exit', { uid: options.uid });
       unsetRendererType(options.uid);
       sessions.delete(options.uid);
     });
   });
 
-  rpc.on('exit', ({uid}) => {
+  rpc.on('exit', ({ uid }) => {
     const session = sessions.get(uid);
     if (session) {
       session.exit();
@@ -200,13 +200,13 @@ export function newWindow(
   rpc.on('minimize', () => {
     window.minimize();
   });
-  rpc.on('resize', ({uid, cols, rows}) => {
+  rpc.on('resize', ({ uid, cols, rows }) => {
     const session = sessions.get(uid);
     if (session) {
-      session.resize({cols, rows});
+      session.resize({ cols, rows });
     }
   });
-  rpc.on('data', ({uid, data, escaped}: {uid: string; data: string; escaped: boolean}) => {
+  rpc.on('data', ({ uid, data, escaped }: { uid: string; data: string; escaped: boolean }) => {
     const session = sessions.get(uid);
     if (session) {
       if (escaped) {
@@ -220,31 +220,31 @@ export function newWindow(
       }
     }
   });
-  rpc.on('info renderer', ({uid, type}) => {
+  rpc.on('info renderer', ({ uid, type }) => {
     // Used in the "About" dialog
     setRendererType(uid, type);
   });
-  rpc.on('open external', ({url}) => {
+  rpc.on('open external', ({ url }) => {
     void shell.openExternal(url);
   });
   rpc.on('open context menu', (selection) => {
-    const {createWindow} = app;
-    Menu.buildFromTemplate(contextMenuTemplate(createWindow, selection)).popup({window});
+    const { createWindow } = app;
+    Menu.buildFromTemplate(contextMenuTemplate(createWindow, selection)).popup({ window });
   });
-  rpc.on('open hamburger menu', ({x, y}) => {
-    Menu.getApplicationMenu()!.popup({x: Math.ceil(x), y: Math.ceil(y)});
+  rpc.on('open hamburger menu', ({ x, y }) => {
+    Menu.getApplicationMenu()!.popup({ x: Math.ceil(x), y: Math.ceil(y) });
   });
   // Same deal as above, grabbing the window titlebar when the window
   // is maximized on Windows results in unmaximize, without hitting any
   // app buttons
   for (const ev of ['maximize', 'unmaximize', 'minimize', 'restore'] as any) {
     window.on(ev, () => {
-      rpc.emit('windowGeometry change', {isMaximized: window.isMaximized()});
+      rpc.emit('windowGeometry change', { isMaximized: window.isMaximized() });
     });
   }
   window.on('move', () => {
     const position = window.getPosition();
-    rpc.emit('move', {bounds: {x: position[0], y: position[1]}});
+    rpc.emit('move', { bounds: { x: position[0], y: position[1] } });
   });
   rpc.on('close', () => {
     window.close();
@@ -281,16 +281,17 @@ export function newWindow(
     if (protocol === 'file:') {
       event.preventDefault();
       const path = fileURLToPath(url);
-      rpc.emit('session data send', {data: path, escaped: true});
+      rpc.emit('session data send', { data: path, escaped: true });
     } else if (protocol === 'http:' || protocol === 'https:') {
       event.preventDefault();
-      rpc.emit('session data send', {data: url});
+      rpc.emit('session data send', { data: url });
     }
   };
 
   // If file is dropped onto the terminal window, navigate and new-window events are prevented
   // and his path is added to active session.
   window.webContents.on('will-navigate', handleDrop);
+  // @ts-ignore
   window.webContents.on('new-window', handleDrop);
 
   // expose internals to extension authors

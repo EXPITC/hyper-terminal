@@ -11,7 +11,7 @@
   ],
   "references": [
     {
-      "path": "./app/tsconfig.json"
+      "path": "app/tsconfig.json"
     }
   ]
 }

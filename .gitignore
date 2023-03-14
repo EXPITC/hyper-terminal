@@ -5,6 +5,9 @@ target
 bin/cli.*
 cache
 
+# no need pack this pack we are not releasing this to npm
+package-lock.json
+
 # dependencies
 node_modules
 
